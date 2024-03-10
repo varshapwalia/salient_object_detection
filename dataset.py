@@ -135,3 +135,15 @@ class ImageDataTrain(data.Dataset):
         """Get the number of training samples
         """
         return self.sal_num
+    
+    
+def get_loader(batch_size, mode='train', num_thread=1, test_mode=0, sal_mode='e'):
+    """ Get the dataloader
+    """
+    shuffle = False
+    if mode == 'train':
+        shuffle = True
+        dataset = ImageDataTrain()
+
+    data_loader = data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_thread)
+    return data_loader, dataset
