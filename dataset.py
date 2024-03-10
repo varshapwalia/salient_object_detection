@@ -90,3 +90,48 @@ def cv_random_flip(img, label, edge):
         label = label[:,:,::-1].copy()
         edge = edge[:,:,::-1].copy()
     return img, label, edge
+
+class ImageDataTrain(data.Dataset):
+    def __init__(self):
+        
+        self.sal_root = '.\\DUTS-TR'
+        # Training Dataset: Each line consists of 3 space-separated parts: path to the image file - path to the mask file- path to the edge mask file
+        self.sal_source = '.\\DUTS-TR\\train_pair_edge.lst' 
+
+        with open(self.sal_source, 'r') as f:
+            # Read all lines in training dataset, strips leading and trailing whitespace from each line
+            self.sal_list = [x.strip() for x in f.readlines()]
+
+        # Number of training data points
+        self.sal_num = len(self.sal_list)
+
+
+    def __getitem__(self, item):
+        """
+        Purpose: Retrieves a sample from the dataset.
+                - Loads the original img, the salient object label, and the salient edge label of the sample
+                - Applies random flipping to the loaded sample
+                - Converts it to PyTorch tensors
+                - Constructs a dictionary containing the image, salient object, and the salient edge tensors
+        
+        Returns: A dictionary containing the following keys and corresponding values
+                'sal_image': A PyTorch tensor representing the loaded image.
+                'sal_label': A PyTorch tensor representing the loaded salient label.
+                'sal_edge': A PyTorch tensor representing the loaded edge label.
+        """
+
+        sal_image = load_image(os.path.join(self.sal_root, self.sal_list[item%self.sal_num].split()[0]))            # Load original image
+        sal_label = load_sal_label(os.path.join(self.sal_root, self.sal_list[item%self.sal_num].split()[1]))        # Load salient object (our label)
+        sal_edge = load_edge_label(os.path.join(self.sal_root, self.sal_list[item%self.sal_num].split()[2]))        # Load salient edge 
+        sal_image, sal_label, sal_edge = cv_random_flip(sal_image, sal_label, sal_edge)                             # Apply random flipping - Add noise to the model for better performance
+        sal_image = torch.Tensor(sal_image)
+        sal_label = torch.Tensor(sal_label)
+        sal_edge = torch.Tensor(sal_edge)
+
+        sample = {'sal_image': sal_image, 'sal_label': sal_label, 'sal_edge': sal_edge}
+        return sample
+
+    def __len__(self):
+        """Get the number of training samples
+        """
+        return self.sal_num
