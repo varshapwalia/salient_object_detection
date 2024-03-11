@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import time
 import os
 
-#initialize an empty ordered dictionary p
+# Initialize an empty ordered dictionary p
 EPSILON = 1e-8
 p = OrderedDict()
 
@@ -26,7 +26,7 @@ nAveGrad = 10                                   # Update the weights once in 'nA
 showEvery = 50                                  # Frequency that the training progress will be displayed
 tmp_path = 'tmp_see'                            # Path for temporary image outputs
 
-#for training and testing
+# For training and testing
 class Solver(object):
     def __init__(self, train_loader, test_loader, config, save_fold=None):
         self.train_loader = train_loader
@@ -42,7 +42,7 @@ class Solver(object):
             self.net_bone.load_state_dict(torch.load(self.config.model))
             self.net_bone.eval()
 
-    # method to build the neural network model
+    # Method to build the neural network model
     def build_model(self):
         self.net_bone = build_model(base_model_cfg)
         # check for CUDA enabled and move model to GPU for faster performance
@@ -62,7 +62,7 @@ class Solver(object):
         # construct Adam optimizer for updating parameters of the backbone model
         self.optimizer_bone = Adam(filter(lambda p: p.requires_grad, self.net_bone.parameters()), lr=self.lr_bone, weight_decay=p['wd'])
 
-
+    # Testing phase
     def test(self, test_mode=0):
         EPSILON = 1e-8
         img_num = len(self.test_loader)
@@ -99,7 +99,7 @@ class Solver(object):
         print('Test Done!')
 
    
-    # training phase
+    # Training phase
     def train(self):
         iter_num = len(self.train_loader.dataset) // self.config.batch_size     # total number of iterations per epoch
         aveGrad = 0
