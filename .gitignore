@@ -1,0 +1,8 @@
+/DUTS-TR
+resnet50_caffe.pth
+epoch_resnet.pth
+/results
+/EGNet
+/env
+/temp_see
+.DS_Store
