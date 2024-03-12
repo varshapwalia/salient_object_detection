@@ -5,4 +5,5 @@ epoch_resnet.pth
 /EGNet
 /env
 /temp_see
+/.venv
 .DS_Store
