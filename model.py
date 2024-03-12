@@ -6,13 +6,8 @@ from resnet import create_resnet50 as resnet50  # Assumes resnet50 is defined in
 from torch.autograd import Variable
 
 
-config_resnet = {
-    'convert': [[64, 256, 512, 1024, 2048], [128, 256, 512, 512, 512]],
-    'merge1': [
-        [128, 256, 128, 3, 1], [256, 512, 256, 3, 1],
-        [512, 0, 512, 5, 2], [512, 0, 512, 5, 2], [512, 0, 512, 7, 3]
-    ]
-}
+config_resnet = {'convert': [[64,256,512,1024,2048],[128,256,512,512,512]], 'deep_pool': [[512, 512, 256, 256, 128], [512, 256, 256, 128, 128], [False, True, True, True, False], [True, True, True, True, False]], 'score': 256, 'edgeinfo':[[16, 16, 16, 16], 128, [16,8,4,2]],'edgeinfoc':[64,128], 'block': [[512, [16]], [256, [16]], [256, [16]], [128, [16]]], 'fuse': [[16, 16, 16, 16], True], 'fuse_ratio': [[16,1], [8,1], [4,1], [2,1]],  'merge1': [[128, 256, 128, 3,1], [256, 512, 256, 3, 1], [512, 0, 512, 5, 2], [512, 0, 512, 5, 2],[512, 0, 512, 7, 3]], 'merge2': [[128], [256, 512, 512, 512]]}
+
 
 
 class ConvertLayer(nn.Module):
@@ -121,12 +116,12 @@ class MergeLayer2(nn.Module):
         return final_score
 
        
-def extra_layer(base_model_cfg):
+def extra_layer(base_model_cfg, resnet):
     """
     Configures and returns additional layers for the TUN model based on the specified base model configuration.
     """
-    config = config_resnet if base_model_cfg == 'resnet' else config_vgg
-    return MergeLayer1(config['merge1']), MergeLayer2(config['merge2'])
+    config = config_resnet if base_model_cfg == 'resnet' else None
+    return resnet, MergeLayer1(config['merge1']), MergeLayer2(config['merge2'])
 
 
 # TUN network
@@ -135,14 +130,13 @@ class TUN_bone(nn.Module):
     """
     TUN_bone integrates a base CNN model (either VGG or ResNet) with additional custom layers for advanced processing.
     """
-    def __init__(self, base_model_cfg):
+    def __init__(self, base_model_cfg, base, merge1_layers, merge2_layers):
         super(TUN_bone, self).__init__()
         self.base_model_cfg = base_model_cfg
-        self.base = resnet50(pretrained=True) if base_model_cfg == 'resnet' else vgg16(pretrained=True)
-        self.merge1, self.merge2 = extra_layer(base_model_cfg)
-
-        if base_model_cfg == 'resnet':
-            self.convert = ConvertLayer(config_resnet['convert'])
+        self.convert = ConvertLayer(config_resnet['convert'])
+        self.base = base
+        self.merge1 = merge1_layers
+        self.merge2 = merge2_layers
 
     def forward(self, x):
         x_size = x.size()[2:]
@@ -154,11 +148,8 @@ class TUN_bone(nn.Module):
         return final_output
 
 # build the whole network
-def build_model(base_model_cfg='vgg'):
-    if base_model_cfg == 'vgg':
-        return TUN_bone(base_model_cfg, *extra_layer(base_model_cfg, vgg16()))
-    elif base_model_cfg == 'resnet':
-        return TUN_bone(base_model_cfg, *extra_layer(base_model_cfg, resnet50()))
+def build_model(base_model_cfg='resnet'):
+    return TUN_bone(base_model_cfg, *extra_layer(base_model_cfg, resnet50()))
 
 
 

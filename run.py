@@ -41,14 +41,14 @@ def main(cfg):
 if __name__ == '__main__':
     print("Setting up model paths...")
     # Paths for pre-trained models
-    resnet_model_path = '../resnet50_caffe.pth'
+    resnet_model_path = './resnet50_caffe.pth'
 
     # Argument parsing
     arg_parser = argparse.ArgumentParser()
 
     # Hyper-parameters
     arg_parser.add_argument('--n_color', type=int, default=3)
-    arg_parser.add_argument('--cuda', type=bool, default=True)
+    arg_parser.add_argument('--cuda', type=bool, default=False)
 
     # Training settings
     arg_parser.add_argument('--resnet', type=str, default=resnet_model_path)
