@@ -1,5 +1,7 @@
 /DUTS-TR
 /DUTS-TE
+/SMALL-TE
+/CSSD-TE
 resnet50_caffe.pth
 epoch_resnet.pth
 /results
