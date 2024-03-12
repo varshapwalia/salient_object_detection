@@ -93,19 +93,22 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
     def __init__(self, block, layers):
-        initial_channels = 64
+        self.initial_channels = 64
         super(ResNet, self).__init__()
         # Initial convolutional layer
-        self.conv1 = nn.Conv2d(3, initial_channels, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        self.bn1 = nn.BatchNorm2d(initial_channels, affine=is_affine)
+        self.bn1 = nn.BatchNorm2d(64, affine=is_affine)
         for param in self.bn1.parameters():
             param.requires_grad = False
         self.relu = nn.ReLU(inplace=True)
         # Max pooling layer
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=True)
         # Residual layers
-        self.layers = nn.ModuleList([self._make_layer(block, initial_channels * (2**i), layers[i], stride=2 if i > 0 else 1) for i in range(len(layers))])
+        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation__ = 2)
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
@@ -116,9 +119,9 @@ class ResNet(nn.Module):
         
     def _make_layer(self, block, channels, num_blocks, stride=1, dilation_=1):
         downsample = None
-        if stride != 1 or self.inplanes != channels * block.expansion_factor or dilation_ in [2, 4]:
+        if stride != 1 or self.initial_channels != channels * block.expansion_factor or dilation_ in [2, 4]:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, channels * block.expansion_factor,
+                nn.Conv2d(self.initial_channels, channels * block.expansion_factor,
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(channels * block.expansion_factor, affine=is_affine),
             )
@@ -126,10 +129,10 @@ class ResNet(nn.Module):
                 param.requires_grad = False
 
         layers = []
-        layers.append(block(self.inplanes, channels, stride, dilation_=dilation_, downsample=downsample))
-        self.inplanes = channels * block.expansion_factor
+        layers.append(block(self.initial_channels, channels, stride, dilation_=dilation_, downsample=downsample))
+        self.initial_channels = channels * block.expansion_factor
         for _ in range(1, num_blocks):
-            layers.append(block(self.inplanes, channels, dilation_=dilation_))
+            layers.append(block(self.initial_channels, channels, dilation_=dilation_))
 
         return nn.Sequential(*layers)
     
