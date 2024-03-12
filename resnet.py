@@ -110,12 +110,13 @@ class ResNet(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation_ = 2)
 
-        for module in self.modules():
-            if isinstance(module, nn.Conv2d):
-                nn.init.normal_(module.weight.data, 0, 0.01)
-            elif isinstance(module, nn.BatchNorm2d):
-                nn.init.constant_(module.weight.data, 1)
-                nn.init.constant_(module.bias.data, 0)
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, 0.01)
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
         
     def _make_layer(self, block, channels, num_blocks, stride=1, dilation_=1):
         downsample = None
@@ -125,8 +126,8 @@ class ResNet(nn.Module):
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(channels * block.expansion_factor, affine=is_affine),
             )
-            for param in downsample._modules['1'].parameters():
-                param.requires_grad = False
+        for param in downsample._modules['1'].parameters():
+            param.requires_grad = False
 
         layers = []
         layers.append(block(self.initial_channels, channels, stride, dilation_=dilation_, downsample=downsample))
@@ -146,13 +147,18 @@ class ResNet(nn.Module):
         # Max pooling layer
         x = self.maxpool(x)
 
-        for layer in self.layers:
-            x = layer(x)
-            tmp_x.append(x)
+        x = self.layer1(x)
+        tmp_x.append(x)
+        x = self.layer2(x)
+        tmp_x.append(x)
+        x = self.layer3(x)
+        tmp_x.append(x)
+        x = self.layer4(x)
+        tmp_x.append(x)
 
         return tmp_x
 
-def create_resnet50(pretrained=False):
+def resnet50(pretrained=False):
     """Constructs a ResNet-50 model.
 
     Args:

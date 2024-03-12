@@ -94,9 +94,9 @@ def cv_random_flip(img, label, edge):
 class ImageDataTrain(data.Dataset):
     def __init__(self):
         
-        self.sal_root = '.\\DUTS-TR'
+        self.sal_root = './DUTS-TR'
         # Training Dataset: Each line consists of 3 space-separated parts: path to the image file - path to the mask file- path to the edge mask file
-        self.sal_source = '.\\DUTS-TR\\train_pair_edge.lst' 
+        self.sal_source = './DUTS-TR/train_pair_edge.lst' 
 
         with open(self.sal_source, 'r') as f:
             # Read all lines in training dataset, strips leading and trailing whitespace from each line

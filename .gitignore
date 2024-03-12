@@ -7,3 +7,4 @@ epoch_resnet.pth
 /temp_see
 /.venv
 .DS_Store
+/__pycache__
