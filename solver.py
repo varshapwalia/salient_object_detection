@@ -67,7 +67,7 @@ class Solver(object):
         EPSILON = 1e-8
         img_num = len(self.test_loader)
         time_t = 0.0
-        name_t = 'EGNet_ResNet50/'
+        name_t = 'EGNet_ResNet50\\'
 
         if not os.path.exists(os.path.join(self.save_fold, name_t)):             
             os.mkdir(os.path.join(self.save_fold, name_t))
@@ -90,10 +90,19 @@ class Solver(object):
                 time_t = time_t + time_end - time_start                              
                 pred = np.squeeze(torch.sigmoid(up_sal_f[-1]).cpu().data.numpy())       # extract final saliency map         
                 multi_fuse = 255 * pred     # scale saliency map values to [0, 255]
-                
-
-                
-                cv2.imwrite(os.path.join(self.config.test_fold,name_t, name[:-4] + '.png'), multi_fuse)     # save map as an image
+      
+                # # Debug - Check if the prediction is valid
+                # if multi_fuse is not None:
+                #     print("Image loaded successfully!")
+                #     print(os.path.join(self.config.test_fold, name_t, os.path.basename(name)[:-4] + '.png'))
+                #     # Display the image
+                #     cv2.imshow("Image", multi_fuse)
+                #     cv2.waitKey(0)  # Wait for a key press to close the window
+                #     cv2.destroyAllWindows()  # Close all OpenCV windows
+                # else:
+                #     print("Failed to load image.")
+                    
+                cv2.imwrite(os.path.join(self.config.test_fold, name_t, os.path.basename(name)[:-4] + '.png'), multi_fuse)     # save map as an image
           
         print("--- %s seconds ---" % (time_t))
         print('Test Done!')

@@ -1,4 +1,5 @@
 /DUTS-TR
+/DUTS-TE
 resnet50_caffe.pth
 epoch_resnet.pth
 /results
