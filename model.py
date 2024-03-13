@@ -1,13 +1,12 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from resnet import create_resnet50 as resnet50  # Assumes resnet50 is defined in a separate module
+from resnet import resnet50  # Assumes resnet50 is defined in a separate module
 
 from torch.autograd import Variable
 
 
 config_resnet = {'convert': [[64,256,512,1024,2048],[128,256,512,512,512]], 'deep_pool': [[512, 512, 256, 256, 128], [512, 256, 256, 128, 128], [False, True, True, True, False], [True, True, True, True, False]], 'score': 256, 'edgeinfo':[[16, 16, 16, 16], 128, [16,8,4,2]],'edgeinfoc':[64,128], 'block': [[512, [16]], [256, [16]], [256, [16]], [128, [16]]], 'fuse': [[16, 16, 16, 16], True], 'fuse_ratio': [[16,1], [8,1], [4,1], [2,1]],  'merge1': [[128, 256, 128, 3,1], [256, 512, 256, 3, 1], [512, 0, 512, 5, 2], [512, 0, 512, 5, 2],[512, 0, 512, 7, 3]], 'merge2': [[128], [256, 512, 512, 512]]}
-
 
 
 class ConvertLayer(nn.Module):
@@ -29,91 +28,103 @@ class ConvertLayer(nn.Module):
 
         
         
-class MergeLayer1(nn.Module):
-    """
-    Merges features from different layers. Supports transformations, upsampling, and integrates edge detection.
-    """
-    def __init__(self, config):
-        super().__init__()
-        self.transform_layers = nn.ModuleList()
-        self.upsample_layers = nn.ModuleList()
-        self.score_layers = nn.ModuleList()
+class MergeLayer1(nn.Module): # list_k: [[64, 512, 64], [128, 512, 128], [256, 0, 256] ... ]
+    def __init__(self, list_k):
+        super(MergeLayer1, self).__init__()
+        self.list_k = list_k
+        trans, up, score = [], [], []
+        for ik in list_k:
+            if ik[1] > 0:
+                trans.append(nn.Sequential(nn.Conv2d(ik[1], ik[0], 1, 1, bias=False), nn.ReLU(inplace=True)))
 
-        for in_channels, out_channels, mid_channels, kernel_size, padding in config:
-            if in_channels > 0:
-                self.transform_layers.append(nn.Sequential(
-                    nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False), 
-                    nn.ReLU(inplace=True)
-                ))
-            self.upsample_layers.append(nn.Sequential(
-                nn.Conv2d(out_channels, mid_channels, kernel_size, padding=padding), 
-                nn.ReLU(inplace=True), 
-                nn.Conv2d(mid_channels, mid_channels, kernel_size, padding=padding), 
-                nn.ReLU(inplace=True)
-            ))
-            self.score_layers.append(nn.Conv2d(mid_channels, 1, kernel_size=3, padding=1))
+           
+            up.append(nn.Sequential(nn.Conv2d(ik[0], ik[2], ik[3], 1, ik[4]), nn.ReLU(inplace=True), nn.Conv2d(ik[2], ik[2], ik[3], 1, ik[4]), nn.ReLU(inplace=True), nn.Conv2d(ik[2], ik[2], ik[3], 1, ik[4]), nn.ReLU(inplace=True)))
+            score.append(nn.Conv2d(ik[2], 1, 3, 1, 1))
+        trans.append(nn.Sequential(nn.Conv2d(512, 128, 1, 1, bias=False), nn.ReLU(inplace=True)))
+        self.trans, self.up, self.score = nn.ModuleList(trans), nn.ModuleList(up), nn.ModuleList(score)
+        self.relu =nn.ReLU()
 
-    def forward(self, feature_maps, x_size):
-        results = []
-        for i, fmap in enumerate(feature_maps):
-            if i < len(self.transform_layers):
-                fmap = self.transform_layers[i](fmap)
-            fmap = F.interpolate(fmap, size=x_size, mode='bilinear', align_corners=True)
-            fmap = self.upsample_layers[i](fmap)
-            results.append(self.score_layers[i](fmap))
-        return results
+    def forward(self, list_x, x_size):
+        up_edge, up_sal, edge_feature, sal_feature = [], [], [], []
+        
+        
+        num_f = len(list_x)
+        tmp = self.up[num_f - 1](list_x[num_f-1])
+        sal_feature.append(tmp)
+        U_tmp = tmp
+        up_sal.append(F.interpolate(self.score[num_f - 1](tmp), x_size, mode='bilinear', align_corners=True))
+        
+        for j in range(2, num_f ):
+            i = num_f - j
+             
+            if list_x[i].size()[1] < U_tmp.size()[1]:
+                U_tmp = list_x[i] + F.interpolate((self.trans[i](U_tmp)), list_x[i].size()[2:], mode='bilinear', align_corners=True)
+            else:
+                U_tmp = list_x[i] + F.interpolate((U_tmp), list_x[i].size()[2:], mode='bilinear', align_corners=True)
+            
+            
+            
+                
+            
+            tmp = self.up[i](U_tmp)
+            U_tmp = tmp
+            sal_feature.append(tmp)
+            up_sal.append(F.interpolate(self.score[i](tmp), x_size, mode='bilinear', align_corners=True))
+
+        U_tmp = list_x[0] + F.interpolate((self.trans[-1](sal_feature[0])), list_x[0].size()[2:], mode='bilinear', align_corners=True)
+        tmp = self.up[0](U_tmp)
+        edge_feature.append(tmp)
+       
+        up_edge.append(F.interpolate(self.score[0](tmp), x_size, mode='bilinear', align_corners=True)) 
+        return up_edge, edge_feature, up_sal, sal_feature
     
        
-class MergeLayer2(nn.Module):
-    """
-    Implements the second merging layer that processes and combines feature maps from different levels of the network.
-    It applies transformations, upsamples the transformed features, and computes a score for each upsampled feature.
-    """
-    def __init__(self, config):
+class MergeLayer2(nn.Module): 
+    def __init__(self, list_k):
         super(MergeLayer2, self).__init__()
-        self.transform_layers = nn.ModuleList()
-        self.upsample_layers = nn.ModuleList()
-        self.score_layers = nn.ModuleList()
+        self.list_k = list_k
+        trans, up, score = [], [], []
+        for i in list_k[0]:
+            tmp = []
+            tmp_up = []
+            tmp_score = []
+            feature_k = [[3,1],[5,2], [5,2], [7,3]]
+            for idx, j in enumerate(list_k[1]):
+                tmp.append(nn.Sequential(nn.Conv2d(j, i, 1, 1, bias=False), nn.ReLU(inplace=True)))
 
-        # Initialize transformation, upsampling, and scoring layers based on the configuration
-        for base_channels in config[0]:
-            transform_group, upsample_group, score_group = nn.ModuleList(), nn.ModuleList(), nn.ModuleList()
-            for target_channels in config[1]:
-                transform_group.append(nn.Sequential(
-                    nn.Conv2d(target_channels, base_channels, kernel_size=1, stride=1, bias=False), 
-                    nn.ReLU(inplace=True)
-                ))
-                feature_kernels = [[3, 1], [5, 2], [5, 2], [7, 3]]
-                for kernel, padding in feature_kernels:
-                    upsample_group.append(nn.Sequential(
-                        nn.Conv2d(base_channels, base_channels, kernel, stride=1, padding=padding),
-                        nn.ReLU(inplace=True)
-                    ))
-                score_group.append(nn.Conv2d(base_channels, 1, kernel_size=3, stride=1, padding=1))
+                tmp_up.append(nn.Sequential(nn.Conv2d(i , i, feature_k[idx][0], 1, feature_k[idx][1]), nn.ReLU(inplace=True), nn.Conv2d(i, i,  feature_k[idx][0],1 , feature_k[idx][1]), nn.ReLU(inplace=True), nn.Conv2d(i, i, feature_k[idx][0], 1, feature_k[idx][1]), nn.ReLU(inplace=True)))
+                tmp_score.append(nn.Conv2d(i, 1, 3, 1, 1))
+            trans.append(nn.ModuleList(tmp))
+
+            up.append(nn.ModuleList(tmp_up))
+            score.append(nn.ModuleList(tmp_score))
             
-            self.transform_layers.append(transform_group)
-            self.upsample_layers.append(upsample_group)
-            self.score_layers.append(score_group)
-        
-        self.final_score_layer = nn.Sequential(
-            nn.Conv2d(config[0][0], config[0][0], kernel_size=5, stride=1, padding=2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(config[0][0], 1, kernel_size=3, stride=1, padding=1)
-        )
+
+        self.trans, self.up, self.score = nn.ModuleList(trans), nn.ModuleList(up), nn.ModuleList(score)       
+        self.final_score = nn.Sequential(nn.Conv2d(list_k[0][0], list_k[0][0], 5, 1, 2), nn.ReLU(inplace=True), nn.Conv2d(list_k[0][0], 1, 3, 1, 1))
+        self.relu =nn.ReLU()
 
     def forward(self, list_x, list_y, x_size):
-        scores = []
-        for x, trans_layers in zip(list_x, self.transform_layers):
-            for y, up_layers in zip(reversed(list_y), self.upsample_layers):
-                y_transformed = trans_layers(y)
-                y_upsampled = F.interpolate(up_layers(y_transformed), size=x_size, mode='bilinear', align_corners=True)
-                score = self.score_layers(x, y_upsampled)
-                scores.append(score)
+        up_score, tmp_feature = [], []
+        list_y = list_y[::-1]
+
         
-        # Combine all scores to compute the final score
-        final_score = torch.cat(scores, dim=1)
-        final_score = self.final_score_layer(final_score)
-        return final_score
+        for i, i_x in enumerate(list_x):
+            for j, j_x in enumerate(list_y):                              
+                tmp = F.interpolate(self.trans[i][j](j_x), i_x.size()[2:], mode='bilinear', align_corners=True) + i_x                
+                tmp_f = self.up[i][j](tmp)             
+                up_score.append(F.interpolate(self.score[i][j](tmp_f), x_size, mode='bilinear', align_corners=True))                  
+                tmp_feature.append(tmp_f)
+       
+        tmp_fea = tmp_feature[0]
+        for i_fea in range(len(tmp_feature) - 1):
+            tmp_fea = self.relu(torch.add(tmp_fea, F.interpolate((tmp_feature[i_fea+1]), tmp_feature[0].size()[2:], mode='bilinear', align_corners=True)))
+        up_score.append(F.interpolate(self.final_score(tmp_fea), x_size, mode='bilinear', align_corners=True))
+      
+
+
+        return up_score
+
 
        
 def extra_layer(base_model_cfg, resnet):
@@ -143,9 +154,9 @@ class TUN_bone(nn.Module):
         features = self.base(x)
         if self.base_model_cfg == 'resnet':
             features = self.convert(features)
-        merged_features = self.merge1(features, x_size)
-        final_output = self.merge2(merged_features, x_size)
-        return final_output
+        up_edge, edge_feature, up_sal, sal_feature = self.merge1(features, x_size)
+        up_sal_final = self.merge2(edge_feature, sal_feature, x_size)
+        return up_edge, up_sal, up_sal_final
 
 # build the whole network
 def build_model(base_model_cfg='resnet'):
