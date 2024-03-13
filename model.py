@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from resnet import create_resnet50 as resnet50  # Assumes resnet50 is defined in a separate module
+from resnet import resnet50  # Assumes resnet50 is defined in a separate module
 
 from torch.autograd import Variable
 
