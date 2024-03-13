@@ -1,25 +1,33 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from resnet import resnet50  # Ensure this is correctly importing your ResNet50 model
+from resnet import create_resnet50 as resnet50  # Assumes resnet50 is defined in a separate module
 
-# Only ResNet configuration is needed now
-config_resnet = {
-    'convert': [[64, 256, 512, 1024, 2048], [128, 256, 512, 512, 512]],
-    'merge1': [[128, 256, 128, 3, 1], [256, 512, 256, 3, 1], [512, 0, 512, 5, 2], [512, 0, 512, 5, 2], [512, 0, 512, 7, 3]],
-    'merge2': [[128], [256, 512, 512, 512]]
-}
+from torch.autograd import Variable
+
+
+config_resnet = {'convert': [[64,256,512,1024,2048],[128,256,512,512,512]], 'deep_pool': [[512, 512, 256, 256, 128], [512, 256, 256, 128, 128], [False, True, True, True, False], [True, True, True, True, False]], 'score': 256, 'edgeinfo':[[16, 16, 16, 16], 128, [16,8,4,2]],'edgeinfoc':[64,128], 'block': [[512, [16]], [256, [16]], [256, [16]], [128, [16]]], 'fuse': [[16, 16, 16, 16], True], 'fuse_ratio': [[16,1], [8,1], [4,1], [2,1]],  'merge1': [[128, 256, 128, 3,1], [256, 512, 256, 3, 1], [512, 0, 512, 5, 2], [512, 0, 512, 5, 2],[512, 0, 512, 7, 3]], 'merge2': [[128], [256, 512, 512, 512]]}
+
 
 class ConvertLayer(nn.Module):
-    def __init__(self, list_k):
-        super(ConvertLayer, self).__init__()
-        self.layers = nn.ModuleList([nn.Sequential(nn.Conv2d(in_ch, out_ch, 1, bias=False), nn.ReLU(inplace=True)) 
-                                     for in_ch, out_ch in zip(list_k[0], list_k[1])])
+    """
+    Converts feature maps from ResNet layers to specified channel sizes for further processing.
+    """
+    def __init__(self, config):
+        super().__init__()
+        self.conversion_layers = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
+                nn.ReLU(inplace=True)
+            ) for in_channels, out_channels in zip(*config)
+        ])
 
-    def forward(self, x):
-        return [layer(feat) for layer, feat in zip(self.layers, x)]
+    def forward(self, feature_maps):
+        # Convert each feature map using the corresponding conversion layer
+        return [layer(fmap) for layer, fmap in zip(self.conversion_layers, feature_maps)]
 
-
+        
+        
 class MergeLayer1(nn.Module): # list_k: [[64, 512, 64], [128, 512, 128], [256, 0, 256] ... ]
     def __init__(self, list_k):
         super(MergeLayer1, self).__init__()
@@ -68,8 +76,9 @@ class MergeLayer1(nn.Module): # list_k: [[64, 512, 64], [128, 512, 128], [256, 0
         edge_feature.append(tmp)
        
         up_edge.append(F.interpolate(self.score[0](tmp), x_size, mode='bilinear', align_corners=True)) 
-        return up_edge, edge_feature, up_sal, sal_feature        
-        
+        return up_edge, edge_feature, up_sal, sal_feature
+    
+       
 class MergeLayer2(nn.Module): 
     def __init__(self, list_k):
         super(MergeLayer2, self).__init__()
@@ -115,24 +124,51 @@ class MergeLayer2(nn.Module):
 
 
         return up_score
-    
+
+
+       
+def extra_layer(base_model_cfg, resnet):
+    """
+    Configures and returns additional layers for the TUN model based on the specified base model configuration.
+    """
+    config = config_resnet if base_model_cfg == 'resnet' else None
+    return resnet, MergeLayer1(config['merge1']), MergeLayer2(config['merge2'])
+
+
+# TUN network
+
 class TUN_bone(nn.Module):
-    def __init__(self):
+    """
+    TUN_bone integrates a base CNN model (either VGG or ResNet) with additional custom layers for advanced processing.
+    """
+    def __init__(self, base_model_cfg, base, merge1_layers, merge2_layers):
         super(TUN_bone, self).__init__()
-        self.base = resnet50(pretrained=True)
+        self.base_model_cfg = base_model_cfg
         self.convert = ConvertLayer(config_resnet['convert'])
-        self.merge1 = MergeLayer1(config_resnet['merge1'])
-        self.merge2 = MergeLayer2(config_resnet['merge2'])
+        self.base = base
+        self.merge1 = merge1_layers
+        self.merge2 = merge2_layers
 
     def forward(self, x):
         x_size = x.size()[2:]
-        conv2merge = self.base(x)        
-        conv2merge = self.convert(conv2merge)
-        up_edge, edge_feature, up_sal, sal_feature = self.merge1(conv2merge, x_size)
+        features = self.base(x)
+        if self.base_model_cfg == 'resnet':
+            features = self.convert(features)
+        up_edge, edge_feature, up_sal, sal_feature = self.merge1(features, x_size)
         up_sal_final = self.merge2(edge_feature, sal_feature, x_size)
         return up_edge, up_sal, up_sal_final
 
-def build_model():
-    return TUN_bone()
+# build the whole network
+def build_model(base_model_cfg='resnet'):
+    return TUN_bone(base_model_cfg, *extra_layer(base_model_cfg, resnet50()))
 
-# Weight initialization functions here if needed
+
+
+def weights_init(m):
+    if isinstance(m, nn.Conv2d):
+        # xavier(m.weight.data)
+        m.weight.data.normal_(0, 0.01)
+        if m.bias is not None:
+            m.bias.data.zero_()
+
+
