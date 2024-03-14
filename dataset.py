@@ -9,9 +9,9 @@ from torch.utils import data
 class ImageDataTrain(data.Dataset):
     def __init__(self):
         
-        self.sal_root = '.\\DUTS-TR'
+        self.sal_root = './DUTS-TR'
         # Training Dataset: Each line consists of 3 space-separated parts: path to the image file - path to the mask file- path to the edge mask file
-        self.sal_source = '.\\DUTS-TR\\train_pair_edge.lst' 
+        self.sal_source = './DUTS-TR/train_pair_edge.lst' 
 
         with open(self.sal_source, 'r') as f:
             # Read all lines in training dataset, strips leading and trailing whitespace from each line
@@ -62,15 +62,15 @@ class ImageDataTest(data.Dataset):
                 # test_fold = root folder. This is to be concatenated with name_t in solver.py
          
         if test_mode == 0:
-            self.image_root = '.\\Your_Test_Data_Folder'
-            self.image_source = '.\\Your_Test_Data_Folder\\test.lst'  # Run createTestList.py beforehand to generate test.lst
-            self.test_fold = '.\\Your_Test_Data_Folder'
+            self.image_root = './Your_Test_Data_Folder'
+            self.image_source = './Your_Test_Data_Folder/test.lst'  # Run createTestList.py beforehand to generate test.lst
+            self.test_fold = './Your_Test_Data_Folder'
 
         elif test_mode == 1:
             if sal_mode == 't':
-                self.image_root = '.\\DUTS-TE'
-                self.image_source = '.\\DUTS-TE\\test.lst'    # Run createTestList.py beforehand to generate test.lst
-                self.test_fold = '.\\DUTS-TE'
+                self.image_root = './test_datasets/cssd/'
+                self.image_source = './test_datasets/cssd_test.lst'    # Run createTestList.py beforehand to generate test.lst
+                self.test_fold = './test_datasets/cssd/'
 
         with open(self.image_source, 'r') as f:
             self.image_list = [x.strip() for x in f.readlines()]
@@ -78,6 +78,7 @@ class ImageDataTest(data.Dataset):
         self.image_num = len(self.image_list)
 
     def __getitem__(self, item):
+        # print(self.image_root, self.image_list[item])
         image, im_size = load_image_test(os.path.join(self.image_root, self.image_list[item]))
         image = torch.Tensor(image)
 
@@ -114,7 +115,7 @@ def load_image(path):
     im = cv2.imread(path)
     in_ = np.array(im, dtype=np.float32)                    # Convert image into a Numpy array
     in_ -= np.array((104.00699, 116.66877, 122.67892))      # Normalization - subtract mean RGB values from each pixel in the image to center data around zero
-    in_ = in_.transpose((2,0,1))                            # Convert the image from HWC (Height, Width, Channels) to CHW (Channels, Height, Width) format
+    in_ = in_.transpose((2,0,1))                            # Convert the image from HWC (Height, Width, Channels) to CHW (Channels, Height, Weight) format
     return in_
 
 
@@ -130,7 +131,7 @@ def load_image_test(path):
     in_ = np.array(im, dtype=np.float32)                    # Convert image into a Numpy array
     im_size = tuple(in_.shape[:2])                          # Compute size of the image by extracting the height and width from image's shape array
     in_ -= np.array((104.00699, 116.66877, 122.67892))      # Normalization - subtract mean RGB values from each pixel in the image to center data around zero
-    in_ = in_.transpose((2,0,1))                            # Convert the image to CHW (Channels, Height, Width) format
+    in_ = in_.transpose((2,0,1))                            # Convert the image to CHW (Channels, Height, Weight) format
     return in_, im_size
 
 

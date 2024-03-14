@@ -7,7 +7,8 @@ epoch_resnet.pth
 /results
 /EGNet
 /env
-/temp_see
+/tmp_see
 /.venv
 .DS_Store
 /__pycache__
+/test_datasets
