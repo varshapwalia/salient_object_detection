@@ -2,7 +2,7 @@
 
 Salient Object Detection using Edge Guidance Network
 
-We use the sal2edge.m to generate the edge label for training.
+We use the salMask2edge.m to generate the edge label for training.
 
 ### For training:
 
