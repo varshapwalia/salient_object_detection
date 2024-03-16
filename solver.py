@@ -55,9 +55,8 @@ class Solver(object):
         # initialize the weights of the model
         self.net_bone.apply(weights_init)
         if self.config.mode == 'train':
-            if self.config.load_bone == '':
-                if base_model_cfg == 'resnet':
-                    self.net_bone.base.load_state_dict(torch.load(self.config.resnet))      #loads pre-trained dictionary of ResNet backbone
+            if self.config.load_bone == 'resnet':
+                self.net_bone.base.load_state_dict(torch.load(self.config.resnet))      #loads pre-trained dictionary of ResNet backbone
             if self.config.load_bone != '': self.net_bone.load_state_dict(torch.load(self.config.load_bone))
 
         self.lr_bone = p['lr_bone']
@@ -78,7 +77,6 @@ class Solver(object):
             self.config.test_fold = self.save_fold
             print(self.config.test_fold)
             images_, name, im_size = data_batch['image'], data_batch['name'][0], np.asarray(data_batch['size'])
-            print(name)
             
             with torch.no_grad():   # temporarily disables gradient calculation                            
                 
@@ -106,6 +104,7 @@ class Solver(object):
                 #     cv2.destroyAllWindows()  # Close all OpenCV windows
                 # else:
                 #     print("Failed to load image.")
+                    
                 cv2.imwrite(os.path.join(self.config.test_fold, name_t, os.path.basename(name)[:-4] + '.png'), multi_fuse)     # save map as an image
           
         print("--- %s seconds ---" % (time_t))
@@ -135,14 +134,14 @@ class Solver(object):
                 # pass salienct images through the network
                 up_edge, up_sal, up_sal_f = self.net_bone(sal_image)
                 
-                # compute edge loss using binary cross=entropy loss function
+                # compute edge loss using binary cross-entropy loss function
                 edge_loss = []
                 for ix in up_edge:
                     edge_loss.append(bce2d_new(ix, sal_edge, reduction='sum'))
                 edge_loss = sum(edge_loss) / (nAveGrad * self.config.batch_size)
                 r_edge_loss += edge_loss.data
                 
-                # compute saliency losses using binary cross=entropy loss function
+                # compute saliency losses using binary cross-entropy loss function
                 sal_loss1= []
                 sal_loss2 = []
                 for ix in up_sal:
@@ -180,7 +179,7 @@ class Solver(object):
                     print('Learning rate: ' + str(self.lr_bone))
                     r_edge_loss, r_sal_loss, r_sum_loss= 0,0,0
 
-                # save obtained images at every iterations where I is a multiple of 200
+                # save obtained images at every iterations where i is a multiple of 200
                 if i % 200 == 0:
 
                     vutils.save_image(torch.sigmoid(up_sal_f[-1].data), tmp_path+'/iter%d-sal-0.jpg' % i, normalize=True, padding = 0)
@@ -197,7 +196,7 @@ class Solver(object):
                 self.lr_bone = self.lr_bone * 0.1  
                 self.optimizer_bone = Adam(filter(lambda p: p.requires_grad, self.net_bone.parameters()), lr=self.lr_bone, weight_decay=p['wd'])
 
-        # save final tained model
+        # save final trained model
         torch.save(self.net_bone.state_dict(), '%s/models/final_bone.pth' % self.config.save_fold)
 
 # binary cross-entropy loss function        
