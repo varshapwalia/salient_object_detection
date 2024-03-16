@@ -7,20 +7,22 @@ We use the salMask2edge.m (require Matlab IDE) to generate the edge label for tr
 ### For training:
 
 1.  Clone this code by  `git clone https://github.com/varshapwalia/salient_object_detection.git`
+
+2. Run `pip install -r requirements` to download libraries required to run the code.
     
-2.  Download any saliency training data, we used DUTS-TR data :
+3.  Download any saliency training data, we used DUTS-TR data :
 	- [DUTS Image Dataset](http://saliencydetection.net/duts/) [10,553 training images]
     
-3.  Download intial model for Resnet50 ([google_drive](https://drive.google.com/file/d/1Mkad1N7OtzeUb81sKRXga1bHPyhUrAw4/view?usp=drive_link));
+4.  Download intial model for Resnet50 ([google_drive](https://drive.google.com/file/d/1Mkad1N7OtzeUb81sKRXga1bHPyhUrAw4/view?usp=drive_link));
 
-4. Create 2 lists using script createTrainList.py (change paths to your datasets). 
+5. Create 2 lists using script createTrainList.py (change paths to your datasets). 
 
 	- First list train.lst will be used in salMask2edge.m to create edge label for training data.
 	- 2nd list train_pair_edge.lst will be used in dataset.py.
     
-5.  Change the image path and intial model path in run.py and dataset.py;
+6.  Change the image path and intial model path in run.py and dataset.py;
     
-6.  Start to train with  `python3 run.py --mode train`.
+7.  Start to train with  `python3 run.py --mode train`.
     
 
 ### For testing:
