@@ -12,3 +12,4 @@ epoch_resnet.pth
 .DS_Store
 /__pycache__
 /test_datasets
+/output_files

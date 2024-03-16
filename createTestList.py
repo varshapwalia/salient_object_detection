@@ -1,7 +1,7 @@
 import os
 
 def parse_files_to_lst(parse_directory):
-    output_file_path = os.path.join(root_folder, "cssd_test.lst")
+    output_file_path = os.path.join(root_folder, "test.lst")
     with open(output_file_path, "w") as lst_file:
         for filename in os.listdir(parse_directory):
             if os.path.isfile(os.path.join(parse_directory, filename)):

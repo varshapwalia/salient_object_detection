@@ -69,7 +69,7 @@ class ImageDataTest(data.Dataset):
         elif test_mode == 1:
             if sal_mode == 't':
                 self.image_root = './test_datasets/cssd/'
-                self.image_source = './test_datasets/cssd_test.lst'    # Run createTestList.py beforehand to generate test.lst
+                self.image_source = './test_datasets/test.lst'    # Run createTestList.py beforehand to generate test.lst
                 self.test_fold = './test_datasets/cssd/'
 
         with open(self.image_source, 'r') as f:
