@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     # Hyper-parameters
     arg_parser.add_argument('--n_color', type=int, default=3)
-    arg_parser.add_argument('--cuda', type=bool, default=False)
+    arg_parser.add_argument('--cuda', type=bool, default=True)
 
     # Training settings
     arg_parser.add_argument('--resnet', type=str, default=resnet_model_path)

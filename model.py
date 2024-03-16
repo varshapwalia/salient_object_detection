@@ -13,15 +13,15 @@ class ConvertLayer(nn.Module):
     """
     Converts feature maps from ResNet layers to specified channel sizes for further processing.
     """
-    def __init__(self, config):
-        super().__init__()
-        self.conversion_layers = nn.ModuleList([
-            nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
-                nn.ReLU(inplace=True)
-            ) for in_channels, out_channels in zip(*config)
-        ])
+    def __init__(self, channel_sizes):
+        super(ConvertLayer, self).__init__()
+        up = []
+        for i in range(len(channel_sizes[0])):
+          
+            up.append(nn.Sequential(nn.Conv2d(channel_sizes[0][i], channel_sizes[1][i], 1, 1, bias=False), nn.ReLU(inplace=True)))
 
+        self.conversion_layers = nn.ModuleList(up)
+        
     def forward(self, feature_maps):
         # Convert each feature map using the corresponding conversion layer
         return [layer(fmap) for layer, fmap in zip(self.conversion_layers, feature_maps)]
