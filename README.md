@@ -2,7 +2,7 @@
 
 Salient Object Detection using Edge Guidance Network
 
-We use the salMask2edge.m(require Matlab IDE) to generate the edge label for training.
+We use the salMask2edge.m (require Matlab IDE) to generate the edge label for training.
 
 ### For training:
 
@@ -12,10 +12,15 @@ We use the salMask2edge.m(require Matlab IDE) to generate the edge label for tra
 	- [DUTS Image Dataset](http://saliencydetection.net/duts/) [10,553 training images]
     
 3.  Download intial model for Resnet50 ([google_drive](https://drive.google.com/file/d/1Mkad1N7OtzeUb81sKRXga1bHPyhUrAw4/view?usp=drive_link));
+
+4. Create 2 lists using script createTrainList.py (change paths to your datasets). 
+
+	- First list train.lst will be used in salMask2edge.m to create edge label for training data.
+	- 2nd list train_pair_edge.lst will be used in dataset.py.
     
-4.  Change the image path and intial model path in run.py and dataset.py;
+5.  Change the image path and intial model path in run.py and dataset.py;
     
-5.  Start to train with  `python3 run.py --mode train`.
+6.  Start to train with  `python3 run.py --mode train`.
     
 
 ### For testing:
@@ -27,8 +32,10 @@ We use the salMask2edge.m(require Matlab IDE) to generate the edge label for tra
 	-   [CSSD](http://www.cse.cuhk.edu.hk/leojia/projects/hsaliency/dataset.html) [200 images] - scroll down to the end to get the link
 	-   [DUTS-TE](http://saliencydetection.net/duts/]) [5019 images]
     
-3.  Change the test image path in dataset.py
+3.  Create a list of dataset using script createTestList.py (change paths to your datasets). and use test.lst generated in dataset.py
+
+4. Change the test image path in dataset.py
     
-4.  Generate saliency maps for SOD dataset by  `python3 run.py --mode test`
+5.  Generate saliency maps for SOD dataset by  `python3 run.py --mode test`
     
-5.  Evaluate Results using the public open source code [SOD Evaluation Metrics](https://github.com/zyjwuyan/SOD_Evaluation_Metrics/tree/main) (f-measure, roc, precision etc).
+6.  Evaluate Results using the public open source code [SOD Evaluation Metrics](https://github.com/zyjwuyan/SOD_Evaluation_Metrics/tree/main) (f-measure, roc, precision etc).
