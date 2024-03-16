@@ -53,7 +53,7 @@ class ImageDataTrain(data.Dataset):
     
     
 class ImageDataTest(data.Dataset):
-    def __init__(self, test_mode=1, sal_mode='t'):
+    def __init__(self,):
         # Test using "DUTS Salient Object Detection Dataset - containing 5,019 test images"
         # Testing data folder structure:
             # root_folder: DUTS-TE containing 
@@ -61,16 +61,10 @@ class ImageDataTest(data.Dataset):
                 # test.lst: list of file names. These are the name of the image files in the image_sources_folder
                 # test_fold = root folder. This is to be concatenated with name_t in solver.py
          
-        if test_mode == 0:
-            self.image_root = './Your_Test_Data_Folder'
-            self.image_source = './Your_Test_Data_Folder/test.lst'  # Run createTestList.py beforehand to generate test.lst
-            self.test_fold = './Your_Test_Data_Folder'
-
-        elif test_mode == 1:
-            if sal_mode == 't':
-                self.image_root = './test_datasets/cssd/'
-                self.image_source = './test_datasets/test.lst'    # Run createTestList.py beforehand to generate test.lst
-                self.test_fold = './test_datasets/cssd/'
+        
+        self.image_root = './test_datasets/cssd/'
+        self.image_source = './test_datasets/test.lst'    # Run createTestList.py beforehand to generate test.lst
+        self.test_fold = './test_datasets/cssd/'
 
         with open(self.image_source, 'r') as f:
             self.image_list = [x.strip() for x in f.readlines()]
@@ -90,7 +84,7 @@ class ImageDataTest(data.Dataset):
         return self.image_num
     
     
-def get_loader(batch_size, mode='train', num_thread=1, test_mode=0, sal_mode='e'):
+def get_loader(batch_size, mode='train', num_thread=1):
     """ Get the dataloader
     """
     shuffle = False
@@ -98,7 +92,7 @@ def get_loader(batch_size, mode='train', num_thread=1, test_mode=0, sal_mode='e'
         shuffle = True
         dataset = ImageDataTrain()
     else:
-        dataset = ImageDataTest(test_mode=test_mode, sal_mode=sal_mode)
+        dataset = ImageDataTest()
 
     data_loader = data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_thread)
     return data_loader, dataset

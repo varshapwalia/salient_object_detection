@@ -78,6 +78,7 @@ class Solver(object):
             self.config.test_fold = self.save_fold
             print(self.config.test_fold)
             images_, name, im_size = data_batch['image'], data_batch['name'][0], np.asarray(data_batch['size'])
+            print(name)
             
             with torch.no_grad():   # temporarily disables gradient calculation                            
                 
@@ -105,7 +106,6 @@ class Solver(object):
                 #     cv2.destroyAllWindows()  # Close all OpenCV windows
                 # else:
                 #     print("Failed to load image.")
-                    
                 cv2.imwrite(os.path.join(self.config.test_fold, name_t, os.path.basename(name)[:-4] + '.png'), multi_fuse)     # save map as an image
           
         print("--- %s seconds ---" % (time_t))
