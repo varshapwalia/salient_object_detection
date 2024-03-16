@@ -55,7 +55,7 @@ class Solver(object):
         # initialize the weights of the model
         self.net_bone.apply(weights_init)
         if self.config.mode == 'train':
-            if self.config.load_bone == 'resnet':
+            if self.config.load_bone == base_model_cfg:
                 self.net_bone.base.load_state_dict(torch.load(self.config.resnet))      #loads pre-trained dictionary of ResNet backbone
             if self.config.load_bone != '': self.net_bone.load_state_dict(torch.load(self.config.load_bone))
 
