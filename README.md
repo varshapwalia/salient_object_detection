@@ -27,7 +27,7 @@ We use the salMask2edge.m (require Matlab IDE) to generate the edge label for tr
 
 ### For testing:
 
-1.  Use the model Trained above. You cab use the [pretrained weights](https://drive.google.com/file/d/1A9vQ5otAaZOJmyrksgKYXAISacCgDtrY/view?usp=drive_link) as well.
+1.  Use the model Trained above. You can use the [pretrained weights](https://drive.google.com/file/d/1A9vQ5otAaZOJmyrksgKYXAISacCgDtrY/view?usp=drive_link) as well.
 
 2. Download Test Dataset, we compared 2 datasets for our model:
 
