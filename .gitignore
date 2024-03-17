@@ -6,7 +6,9 @@ resnet50_caffe.pth
 epoch_resnet.pth
 /results
 /EGNet
+/test_datasets
 /env
+/temp_see
 /tmp_see
 /.venv
 .DS_Store
