@@ -28,7 +28,7 @@ def main(cfg):
     # Test mode
     elif cfg.mode == 'test':
         # Obtain test data loader and dataset
-        test_data_loader, test_dataset = get_loader(cfg.test_batch_size, mode='test', num_thread=cfg.num_thread, test_mode=cfg.test_mode, sal_mode=cfg.sal_mode)
+        test_data_loader, test_dataset = get_loader(cfg.test_batch_size, mode='test', num_thread=cfg.num_thread)
 
         # Initialize and perform testing
         tester = Solver(None, test_data_loader, cfg, test_dataset.save_folder())  # Solver initialization for testing
