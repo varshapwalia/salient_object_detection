@@ -20,20 +20,24 @@ class ConvertLayer(nn.Module):
           
             up.append(nn.Sequential(nn.Conv2d(channel_sizes[0][i], channel_sizes[1][i], 1, 1, bias=False), nn.ReLU(inplace=True)))
 
-        self.conversion_layers = nn.ModuleList(up)
+        self.convert0 = nn.ModuleList(up)
         
     def forward(self, feature_maps):
         # Convert each feature map using the corresponding conversion layer
-        return [layer(fmap) for layer, fmap in zip(self.conversion_layers, feature_maps)]
+        return [layer(fmap) for layer, fmap in zip(self.convert0, feature_maps)]
 
         
         
-class MergeLayer1(nn.Module): # list_k: [[64, 512, 64], [128, 512, 128], [256, 0, 256] ... ]
-    def __init__(self, list_k):
+class MergeLayer1(nn.Module): # channel_sizes: [[64, 512, 64], [128, 512, 128], [256, 0, 256] ... ]
+    """
+    Initiates EGNet merging by generating preliminary edge and saliency predictions, using convolutions, upsampling, 
+    and scoring to enhance spatial resolution and discrimination.
+    """
+    def __init__(self, channel_sizes):
         super(MergeLayer1, self).__init__()
-        self.list_k = list_k
+        self.channel_sizes = channel_sizes
         trans, up, score = [], [], []
-        for ik in list_k:
+        for ik in channel_sizes:
             if ik[1] > 0:
                 trans.append(nn.Sequential(nn.Conv2d(ik[1], ik[0], 1, 1, bias=False), nn.ReLU(inplace=True)))
 
@@ -80,16 +84,20 @@ class MergeLayer1(nn.Module): # list_k: [[64, 512, 64], [128, 512, 128], [256, 0
     
        
 class MergeLayer2(nn.Module): 
-    def __init__(self, list_k):
+    """
+    Refines edge and saliency predictions by cross-merging two sets of feature maps, integrating diverse information 
+    for high-resolution, accurate segmentation outcomes in EGNet.
+    """
+    def __init__(self, channel_sizes):
         super(MergeLayer2, self).__init__()
-        self.list_k = list_k
+        self.channel_sizes = channel_sizes
         trans, up, score = [], [], []
-        for i in list_k[0]:
+        for i in channel_sizes[0]:
             tmp = []
             tmp_up = []
             tmp_score = []
             feature_k = [[3,1],[5,2], [5,2], [7,3]]
-            for idx, j in enumerate(list_k[1]):
+            for idx, j in enumerate(channel_sizes[1]):
                 tmp.append(nn.Sequential(nn.Conv2d(j, i, 1, 1, bias=False), nn.ReLU(inplace=True)))
 
                 tmp_up.append(nn.Sequential(nn.Conv2d(i , i, feature_k[idx][0], 1, feature_k[idx][1]), nn.ReLU(inplace=True), nn.Conv2d(i, i,  feature_k[idx][0],1 , feature_k[idx][1]), nn.ReLU(inplace=True), nn.Conv2d(i, i, feature_k[idx][0], 1, feature_k[idx][1]), nn.ReLU(inplace=True)))
@@ -101,7 +109,7 @@ class MergeLayer2(nn.Module):
             
 
         self.trans, self.up, self.score = nn.ModuleList(trans), nn.ModuleList(up), nn.ModuleList(score)       
-        self.final_score = nn.Sequential(nn.Conv2d(list_k[0][0], list_k[0][0], 5, 1, 2), nn.ReLU(inplace=True), nn.Conv2d(list_k[0][0], 1, 3, 1, 1))
+        self.final_score = nn.Sequential(nn.Conv2d(channel_sizes[0][0], channel_sizes[0][0], 5, 1, 2), nn.ReLU(inplace=True), nn.Conv2d(channel_sizes[0][0], 1, 3, 1, 1))
         self.relu =nn.ReLU()
 
     def forward(self, list_x, list_y, x_size):
@@ -160,13 +168,17 @@ class TUN_bone(nn.Module):
 
 # build the whole network
 def build_model(base_model_cfg='resnet'):
+    """
+    Constructs a ResNet-based neural network optimized for performance, including GPU acceleration, weight initialization, 
+    optional pre-trained weights, and learning rate setup. Employs Adam optimizer for loss minimization.
+    """
     return TUN_bone(base_model_cfg, *extra_layer(base_model_cfg, resnet50()))
 
 
 
 def weights_init(m):
+    #Initializing weights for the convolution to train itself on
     if isinstance(m, nn.Conv2d):
-        # xavier(m.weight.data)
         m.weight.data.normal_(0, 0.01)
         if m.bias is not None:
             m.bias.data.zero_()
