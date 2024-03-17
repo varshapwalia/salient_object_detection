@@ -22,12 +22,12 @@ We use the salMask2edge.m (require Matlab IDE) to generate the edge label for tr
     
 6.  Change the image path and intial model path in run.py and dataset.py;
     
-7.  Start to train with  `python3 run.py --mode train`.
+7.  Start to train with  `python3 run.py --mode train`.  (30 epochs can take between 12hrs (RTX 4080) to 60hr (RTX 3060))
     
 
 ### For testing:
 
-1.  Use the model Trained above (30 epochs can take between 5hrs (RTX 4080) to 60hr (RTX 3060)). [pretrained weights](https://drive.google.com/file/d/1A9vQ5otAaZOJmyrksgKYXAISacCgDtrY/view?usp=drive_link)
+1.  Use the model Trained above. You cab use the [pretrained weights](https://drive.google.com/file/d/1A9vQ5otAaZOJmyrksgKYXAISacCgDtrY/view?usp=drive_link) as well.
 
 2. Download Test Dataset, we compared 2 datasets for our model:
 
